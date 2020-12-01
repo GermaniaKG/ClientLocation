@@ -1,6 +1,6 @@
 {
     "name": "germania-kg/client-location",
-    "description": "PSR-15 Middleware for storiung client location",
+    "description": "PSR-15 Middleware for storing client location",
     "keywords": [ "psr15", "location"],
     "type": "library",
     "license": "MIT",
