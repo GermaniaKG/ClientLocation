@@ -1,0 +1,36 @@
+# .scrutinizer.yml
+
+build:
+
+    dependencies:
+        before:
+            - rm composer.lock
+
+    tests:
+        override:
+            -
+                command: 'vendor/bin/phpunit --coverage-clover=coverage'
+                coverage:
+                    file: 'coverage'
+                    format: 'php-clover'
+
+    nodes:
+
+        php73:
+            environment:
+                php: 7.3
+
+        php74:
+            environment:
+                php: 7.4
+
+
+checks:
+    php:
+        code_rating: true
+        duplication: true
+
+filter:
+    excluded_paths:
+        - tests/*
+
