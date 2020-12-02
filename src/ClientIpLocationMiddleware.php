@@ -48,7 +48,7 @@ class ClientIpLocationMiddleware implements MiddlewareInterface
      * Request attribute where the canonical URI shall be stored in.
      * @var string
      */
-    public $client_location_attribute_name = "X-client-location";
+    public $client_location_attribute_name = "client-location";
 
 
     /**
