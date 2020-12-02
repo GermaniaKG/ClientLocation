@@ -20,7 +20,7 @@ class HttpClientLocationCreatorTest extends \PHPUnit\Framework\TestCase
 
     public function testInstantiation()
     {
-        $api = "https://httpbin.org";
+        $api = "https://httpbin.org?test={{ip}}";
 
         $client_mock = $this->prophesize(ClientInterface::class);
         $client = $client_mock->reveal();

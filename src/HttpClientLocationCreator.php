@@ -43,7 +43,7 @@ class HttpClientLocationCreator
      *
      * @var string
      */
-    public $ip_query_parameter = "ip";
+    public $ip_var_name = "ip";
 
 
     /**
@@ -114,13 +114,14 @@ class HttpClientLocationCreator
      */
     public function createRequest( string $client_ip ) : RequestInterface
     {
-        $request = $this->request_factory->createRequest("GET", $this->api);
+        $client_ip_urlencoded = urlencode($client_ip);
+        $query_parameter_field = "{{" . $this->ip_var_name . "}}";
 
-        $query_string = http_build_query([$this->ip_query_parameter => $client_ip]);
-        $uri = $request->getUri()->withQuery($query_string);
+        $api = str_replace($query_parameter_field, $client_ip_urlencoded, $this->api);
 
-        return $request->withUri($uri);
+        return $this->request_factory->createRequest("GET", $api);
     }
+
 
 
     /**

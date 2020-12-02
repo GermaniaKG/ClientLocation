@@ -33,6 +33,7 @@ If the `client-ip` attribute is not set or empty, the middleware does nothing an
 The **ClientIpLocationMiddleware** implements PSR-15 *MiddlewareInterface*. The constructor requires 
 
 - **Factory callable** which accepts the client's IP address and actually determines the client location.
+  Proposal: Use the [HttpClientLocationCreator](#HttpClientLocationCreator) below.
 - **PSR-3 Logger** for errors. 
 - An optional **PSR-3 error loglevel name** can be added optionally. Default is `LogLevel::ERROR`
 
@@ -56,6 +57,76 @@ Both attribute names can be renamed. Here the defaults:
 $middleware->setClientIpAttributeName("client-ip")
            ->setClientLocationAttributeName("client-location");
 ```
+
+
+
+## HttpClientLocationCreator
+
+the **HttpClientLocationCreator** is a callable class which accepts the client IP and returns the client location. Its constructor requires an *API endpoint*, a *PSR-18 HTTP client* and a *PSR-17 Request factory*.
+
+The API endpoint should contain a ``{{ip}}`` template variable where the client IP is placed in.
+
+```php
+<?php
+use Germania\ClientIpLocation\HttpClientLocationCreator;
+use Psr\Http\Client\ClientInterface;
+use Nyholm\Psr7\Factory\Psr17Factory;
+
+$api = "https://api.geocoder.test/location?ip={{ip}}";
+$http_client = new \Http\Adapter\Guzzle6\Client( new \GuzzleHttp\Client );
+$request_factory = new Psr17Factory;
+
+$creator = new HttpClientLocationCreator($api, $psr18_client, $request_factory);
+```
+
+
+
+### Configuration
+
+**Set custom API response decoder**
+
+Per default, the response will be json_decoded as associative array. You can specify a custom response decoder:
+
+```php
+use Psr\Http\Message\ResponseInterface;
+
+$decoder = function(ResponseInterface $response) {
+  return json_decode($response->getBody(), "assoc");
+};
+
+// Pass with constructor
+$creator = new HttpClientLocationCreator($api, $psr18_client, $request_factory, $decoder);
+
+// ...or 
+$creator->setResponseDecoder( $decoder );
+```
+
+
+
+**Set default location to return when HTTP client throws exception:**
+
+```php
+$creator->setDefaultLocation("Berlin");
+```
+
+
+
+**Set PSR-3 Logger:**
+
+```php
+$logger = new Monolog(...);
+
+// Pass with constructor
+
+$creator = new HttpClientLocationCreator($api, $psr18_client, $request_factory, $decoder, $logger);
+
+// ...or 
+$creator->setLogger( $logger );
+```
+
+
+
+
 
 
 
