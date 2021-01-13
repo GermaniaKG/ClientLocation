@@ -93,10 +93,11 @@ class HttpClientLocationCreator
             return $this->decodeResponse($response);
         }
         catch (ClientExceptionInterface $e) {
-            $msg = $e->getMessage();
+            $msg = sprintf("HttpClientLocationCreator: %s", $e->getMessage());
             $msg_location = sprintf("%s:%s", $e->getFile(), $e->getLine());
             $this->logger->log( $this->error_loglevel, $msg, [
-                'exception' => get_class($e),
+                'type' => get_class($e),
+                'code' => $e->getCode(),
                 'location' => $msg_location,
                 'apiEndpoint' => $this->api,
                 'clientIp' => $client_ip
@@ -148,6 +149,14 @@ class HttpClientLocationCreator
         return $this;
     }
 
+
+    /**
+     * @param string $error_loglevel PSR-3 Loglevel name
+     */
+    public function setErrorLoglevel( string $error_loglevel ) {
+        $this->error_loglevel = $error_loglevel;
+        return $this;
+    }
 
 
     /**

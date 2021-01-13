@@ -100,7 +100,8 @@ class ClientIpLocationMiddleware implements MiddlewareInterface
             $msg = sprintf("ClientIpLocationMiddleware: %s", $e->getMessage());
             $msg_location = sprintf("%s:%s", $e->getFile(), $e->getLine());
             $this->logger->log( $this->error_loglevel, $msg, [
-                'exception' => get_class($e),
+                'type' => get_class($e),
+                'code' => $e->getCode(),
                 'location' => $msg_location,
                 'clientIp' => $client_ip
             ]);
