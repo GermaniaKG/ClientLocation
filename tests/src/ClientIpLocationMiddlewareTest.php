@@ -79,7 +79,6 @@ class ClientIpLocationMiddlewareTest extends \PHPUnit\Framework\TestCase
         $fn = function() use ($client_location) { return $client_location; };
         $log = $this->getLogger();
 
-
         $sut = new ClientIpLocationMiddleware( $fn, $log );
         $sut->setClientIpAttributeName($client_ip_attr_name);
         $sut->setClientLocationAttributeName($client_loc_attr_name);
@@ -99,7 +98,44 @@ class ClientIpLocationMiddlewareTest extends \PHPUnit\Framework\TestCase
 
         $result_response = $sut->process($request, $handler);
         $this->assertInstanceOf(ResponseInterface::class, $result_response);
+
+        return $sut;
     }
+
+
+
+    public function testExceptionInLocationFactory( )
+    {
+        $client_ip = "127.0.0.1";
+        $client_ip_attr_name = "clientIpBB";
+        $client_loc_attr_name = "clientLocationBB";
+
+        $fn = function() {
+            throw new \RuntimeException("Huh!");
+        };
+
+        $sut = new ClientIpLocationMiddleware( $fn, $this->getLogger());
+        $sut->setClientIpAttributeName($client_ip_attr_name);
+        $sut->setClientLocationAttributeName($client_loc_attr_name);
+        $sut->setLocationFactory($fn);
+
+        $request_mock = $this->prophesize(ServerRequestInterface::class);
+        $request_mock->getAttribute(Argument::exact($client_ip_attr_name))->willReturn( $client_ip);
+
+        $request = $request_mock->reveal();
+
+        $response = (new Psr17Factory)->createResponse(200);
+
+        $handler_mock = $this->prophesize( RequestHandlerInterface::class );
+        $handler_mock->handle( Argument::type(ServerRequestInterface::class) )->willReturn( $response );
+        $handler = $handler_mock->reveal();
+
+        $result_response = $sut->process($request, $handler);
+        $this->assertInstanceOf(ResponseInterface::class, $result_response);
+    }
+
+
+
 
 
     public function provideClientIpData() {
