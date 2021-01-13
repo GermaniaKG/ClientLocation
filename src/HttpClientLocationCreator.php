@@ -65,6 +65,12 @@ class HttpClientLocationCreator
 
 
     /**
+     * @var string
+     */
+    protected $notfound_loglevel = LogLevel::NOTICE;
+
+
+    /**
      * @param string                  $api              Geocoder API endpoint
      * @param ClientInterface         $client           PSR-18 HTTP Client
      * @param RequestFactoryInterface $request_factory  PSR-17 Request factory
@@ -173,6 +179,16 @@ class HttpClientLocationCreator
      */
     public function setErrorLoglevel( string $error_loglevel ) {
         $this->error_loglevel = $error_loglevel;
+        return $this;
+    }
+
+
+
+    /**
+     * @param string $notfound_loglevel PSR-3 Loglevel name
+     */
+    public function setNotFoundLoglevel( string $notfound_loglevel ) {
+        $this->notfound_loglevel = $notfound_loglevel;
         return $this;
     }
 
