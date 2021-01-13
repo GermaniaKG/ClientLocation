@@ -67,9 +67,16 @@ class ClientIpLocationMiddleware implements MiddlewareInterface
      */
     public function __construct( callable $location_factory, LoggerInterface $logger, string $error_loglevel = LogLevel::ERROR)
     {
-        $this->location_factory = $location_factory;
+        $this->setLocationFactory( $location_factory );
         $this->error_loglevel = $error_loglevel;
         $this->logger = $logger;
+    }
+
+
+    public function setLocationFactory( callable $location_factory ) : self
+    {
+        $this->location_factory = $location_factory;
+        return $this;
     }
 
 

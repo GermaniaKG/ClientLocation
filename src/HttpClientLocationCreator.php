@@ -3,7 +3,6 @@ namespace Germania\ClientIpLocation;
 
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Client\ClientExceptionInterface;
-use Psr\Http\Client\RequestExceptionInterface;
 
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\RequestFactoryInterface;
@@ -67,7 +66,7 @@ class HttpClientLocationCreator
     /**
      * @var string
      */
-    protected $notfound_loglevel = LogLevel::NOTICE;
+    protected $client_exception_loglevel = LogLevel::NOTICE;
 
 
     /**
@@ -98,30 +97,43 @@ class HttpClientLocationCreator
             $response = $this->client->sendRequest( $request);
             $response_status = $response->getStatusCode();
 
-            if ($response_status == 404) {
-                $this->logger->log( $this->notfound_loglevel, "Could not determine client location, proceed with default location", [
-                    'request' => $request->getUri()->__toString(),
-                    'responseStatus' => $response_status,
-                    'apiEndpoint' => $this->api,
-                    'clientIp' => $client_ip
-                ]);
-                return $this->default_location;
-            }
+            switch($response_status):
+                case 200:
+                    return $this->decodeResponse($response);
+                    break;
 
-            return $this->decodeResponse($response);
+                case 404:
+                    $msg = sprintf("Could not find location for IP address");
+                    throw new ClientException($msg, $response_status);
+                    break;
+
+                default:
+                    $msg = sprintf("Error response with error status code: '%s'", $response_status);
+                    throw new ClientException($msg, $response_status);
+
+            endswitch;
+        }
+        catch (ClientExceptionInterface $e) {
+            $msg_location = sprintf("%s:%s", $e->getFile(), $e->getLine());
+
+            $this->logger->log( $this->client_exception_loglevel, $e->getMessage(), [
+                'type' => get_class($e),
+                'code' => $e->getCode(),
+                'request' => $request->getUri()->__toString(),
+                'location' => $msg_location,
+                'apiEndpoint' => $this->api,
+                'clientIp' => $client_ip
+            ]);
+
+            return $this->default_location;
         }
         catch (\Throwable $e) {
-            $response_status = (!empty($response) && $response instanceOf ResponseInterface)
-                            ? $response->getStatusCode()
-                            : null;
-
             $msg = sprintf("Exception caught in HttpClientLocationCreator: %s", $e->getMessage());
             $msg_location = sprintf("%s:%s", $e->getFile(), $e->getLine());
             $this->logger->log( $this->error_loglevel, $msg, [
                 'type' => get_class($e),
                 'code' => $e->getCode(),
                 'request' => $request->getUri()->__toString(),
-                'responseStatus' => $response_status,
                 'location' => $msg_location,
                 'apiEndpoint' => $this->api,
                 'clientIp' => $client_ip
@@ -185,10 +197,10 @@ class HttpClientLocationCreator
 
 
     /**
-     * @param string $notfound_loglevel PSR-3 Loglevel name
+     * @param string $client_exception_loglevel PSR-3 Loglevel name
      */
-    public function setNotFoundLoglevel( string $notfound_loglevel ) {
-        $this->notfound_loglevel = $notfound_loglevel;
+    public function setClientExceptionLoglevel( string $client_exception_loglevel ) {
+        $this->client_exception_loglevel = $client_exception_loglevel;
         return $this;
     }
 

@@ -2,10 +2,13 @@
 namespace tests;
 
 use Germania\ClientIpLocation\HttpClientLocationCreator;
+use Germania\ClientIpLocation\ClientException;
+use \Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\UriInterface;
+use Psr\Log\LogLevel;
 
 use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Argument;
@@ -61,6 +64,87 @@ class HttpClientLocationCreatorTest extends \PHPUnit\Framework\TestCase
     }
 
 
+   /**
+    * @depends testSetters
+    */
+   public function testClientExceptionFromClient( $sut )
+   {
+       $default_location = ['city' => "Berlin"];
+       $sut->setDefaultLocation($default_location);
+
+       $client_mock = $this->prophesize(ClientInterface::class);
+       $client_mock->sendRequest(Argument::any())->willThrow(ClientException::class);
+       $client = $client_mock->reveal();
+
+       $sut->setClient($client);
+       $result = $sut->__invoke("localhost");
+       $this->assertIsArray($result);
+       $this->assertEquals($default_location['city'], $result['city']);
+   }
+
+   /**
+    * @depends testSetters
+    */
+   public function testGenericExceptionFromClient( $sut )
+   {
+       $default_location = ['city' => "Berlin"];
+       $sut->setDefaultLocation($default_location);
+
+       $client_mock = $this->prophesize(ClientInterface::class);
+       $client_mock->sendRequest(Argument::any())->willThrow(\RuntimeException::class);
+       $client = $client_mock->reveal();
+
+       $sut->setClient($client);
+       $result = $sut->__invoke("localhost");
+       $this->assertIsArray($result);
+       $this->assertEquals($default_location['city'], $result['city']);
+   }
+
+   /**
+    * @depends testSetters
+    */
+   public function testClientExceptionDueToNotFoundErrorResponse( $sut )
+   {
+        $default_location = ['city' => "Berlin"];
+        $sut->setDefaultLocation($default_location);
+
+        $response = (new Psr17Factory)->createResponse(404);
+        $response->getBody()->write(json_encode(['city' => "Berlin"]));
+
+        $client_mock = $this->prophesize(ClientInterface::class);
+        $client_mock->sendRequest(Argument::any())->willReturn($response);
+        $client = $client_mock->reveal();
+
+        $sut->setClient($client);
+        $result = $sut->__invoke("localhost");
+        $this->assertIsArray($result);
+        $this->assertEquals($default_location['city'], $result['city']);
+   }
+
+   /**
+    * @depends testSetters
+    */
+   public function testClientExceptionDueToServerErrorResponse( $sut )
+   {
+        $default_location = ['city' => "Berlin"];
+        $sut->setDefaultLocation($default_location);
+
+        $response = (new Psr17Factory)->createResponse(500);
+        $response->getBody()->write(json_encode(['city' => "Berlin"]));
+
+        $client_mock = $this->prophesize(ClientInterface::class);
+        $client_mock->sendRequest(Argument::any())->willReturn($response);
+        $client = $client_mock->reveal();
+
+        $sut->setClient($client);
+        $result = $sut->__invoke("localhost");
+        $this->assertIsArray($result);
+        $this->assertEquals($default_location['city'], $result['city']);
+   }
+
+
+
+
     /**
      * @depends testSetters
      */
@@ -79,11 +163,11 @@ class HttpClientLocationCreatorTest extends \PHPUnit\Framework\TestCase
     /**
      * @depends testInstantiation
      */
-    public function testRequestCreation( $sut )
-    {
-        $request = $sut->createRequest("127.0.0.1");
-        $this->assertInstanceOf(RequestInterface::class, $request);
-    }
+   public function testRequestCreation( $sut )
+   {
+       $request = $sut->createRequest("127.0.0.1");
+       $this->assertInstanceOf(RequestInterface::class, $request);
+   }
 
 
 
@@ -96,6 +180,12 @@ class HttpClientLocationCreatorTest extends \PHPUnit\Framework\TestCase
         $this->assertInstanceOf(HttpClientLocationCreator::class, $res);
 
         $res = $sut->setApiEndpoint("https://httpbin.org");
+        $this->assertInstanceOf(HttpClientLocationCreator::class, $res);
+
+        $res = $sut->setClientExceptionLoglevel(LogLevel::INFO);
+        $this->assertInstanceOf(HttpClientLocationCreator::class, $res);
+
+        $res = $sut->setErrorLoglevel(LogLevel::INFO);
         $this->assertInstanceOf(HttpClientLocationCreator::class, $res);
 
         $res = $sut->setRequestFactory(new Psr17Factory);
