@@ -90,14 +90,32 @@ class HttpClientLocationCreator
 
         try {
             $response = $this->client->sendRequest( $request);
+            $response_status = $response->getStatusCode();
+
+            if ($response_status == 404) {
+                $this->logger->log( $this->notfound_loglevel, "Could not determine client location, proceed with default location", [
+                    'request' => $request->getUri()->__toString(),
+                    'responseStatus' => $response_status,
+                    'apiEndpoint' => $this->api,
+                    'clientIp' => $client_ip
+                ]);
+                return $this->default_location;
+            }
+
             return $this->decodeResponse($response);
         }
-        catch (ClientExceptionInterface $e) {
-            $msg = sprintf("HttpClientLocationCreator: %s", $e->getMessage());
+        catch (\Throwable $e) {
+            $response_status = (!empty($response) && $response instanceOf ResponseInterface)
+                            ? $response->getStatusCode()
+                            : null;
+
+            $msg = sprintf("Exception caught in HttpClientLocationCreator: %s", $e->getMessage());
             $msg_location = sprintf("%s:%s", $e->getFile(), $e->getLine());
             $this->logger->log( $this->error_loglevel, $msg, [
                 'type' => get_class($e),
                 'code' => $e->getCode(),
+                'request' => $request->getUri()->__toString(),
+                'responseStatus' => $response_status,
                 'location' => $msg_location,
                 'apiEndpoint' => $this->api,
                 'clientIp' => $client_ip
